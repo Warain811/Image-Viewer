@@ -16,8 +16,20 @@ Features include:
   - Lowpass Filters (Weighted Average, Median Square and Cross)
   - Highpass Filters (Laplacian, Unsharp Masking, Highboost Filtering)
   - Edge Detection (Sobel-Gradient)
-  d
-  - lt and Pepper Noisdsafsddddddddsdfdsafsdfsd4s43fsd453sdsd6f456
-  das 46
-  5dsa486
-  
+
+- Noise Options
+  - Salt and Pepper Noise
+  - Salt Noise
+  - Pepper Noise
+
+- Image Restoration Options
+  - Contraharmonic Mean Filter (Q=-1.5)
+  - Contraharmonic Mean Filter (Q=1.5)
+  - Min Filter
+  - Max Filter
+
+- Image Compression Options
+  -  RLE for Grayscale
+  -  RLE for RGB
+
+- Least Isgnificant Bit (LSB) Watermarking
