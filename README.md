@@ -9,7 +9,7 @@ Features include:
   - Grayscale 
   - Negative
   - Negative Grayscale
-  - Black and Whie Threshold
+  - Black and White Thresholding
   - Gamma
 
 - Spatial Filtering Options
@@ -32,4 +32,4 @@ Features include:
   -  RLE for Grayscale
   -  RLE for RGB
 
-- Least Isgnificant Bit (LSB) Watermarking
+- Least Significant Bit (LSB) Watermarking
