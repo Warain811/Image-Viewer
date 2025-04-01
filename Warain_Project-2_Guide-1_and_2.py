@@ -18,6 +18,7 @@ import numpy as np
 # Local application imports
 from spatial_filtering_window import open_window
 from LSB_watermarking_window import open_bit_plane_window
+from helpers import is_valid_file_type, handle_file_load, show_error_popup
 
 # Constants
 # File paths
@@ -455,15 +456,12 @@ def main(file_list):
             file_exist = values['-FILE-']
             if not file_exist:
                 pass
-            elif not file_exist.lower().endswith(('.gif', '.jpg', '.png', '.pcx', '.bmp')):
-                sg.Popup("Please choose an image file.", font=font, button_type=5, title="Error!")
+            elif not is_valid_file_type(file_exist):
+                show_error_popup("Please choose an image file.", font)
             else:
-                if os.path.exists(file_path):
-                    file_list.append(file_path)
-                    window["-FILE LIST-"].update(file_list)
-                    full_image, color_palette, image_dimensions = image_open(file_path)
-                    current_image = file_path
-                    clear_color_pallete(current_image)
+                current_image, full_image, color_palette, image_dimensions = handle_file_load(
+                    file_path, file_list, window, image_open, clear_color_pallete
+                )
             
         elif event == "R":    # show red channel [16]
             if current_image == "":         
