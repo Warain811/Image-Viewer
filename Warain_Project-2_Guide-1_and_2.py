@@ -1,20 +1,47 @@
 # Program Description: Desktop Application that opens, reads, and transforms image files
 # Author: John Cedric R. Warain, 4 - BSCS
 
-from re import L
-from tkinter import Y
-import cv2      # import modules
-import io  
+# Standard library imports
+import io
 import os
 from os.path import exists
-import PySimpleGUI as sg
-import struct 
-import matplotlib.pyplot as plt   
-from PIL import Image, ImageTk  #Image for open, ImageTk for display
-import numpy as np
+import struct
 import math
+
+# Third-party imports
+import cv2
+import PySimpleGUI as sg
+import matplotlib.pyplot as plt
+from PIL import Image, ImageTk  # Image for open, ImageTk for display
+import numpy as np
+
+# Local application imports
 from spatial_filtering_window import open_window
 from LSB_watermarking_window import open_bit_plane_window
+
+# Constants
+# File paths
+TEMP_PNG = "tmp.png"
+TRANSFORMATION_PNG = "transformation.png"
+COLOR_PALETTE_PNG = "color_palette.png"
+HISTOGRAM_PNG = "histogram.png"
+EMPTY_PNG = "empty.png"
+
+# Image processing constants
+GRAYSCALE_WEIGHTS = {
+    'RED': 0.2989,
+    'GREEN': 0.5870,
+    'BLUE': 0.1140
+}
+DEFAULT_IMAGE_SIZE = (256, 256)
+COLOR_PALETTE_SIZE = (64, 64)
+THUMBNAIL_SIZE = (256, 256)
+
+# UI constants
+UI_THEME = 'DarkGrey8'
+UI_FONT = ("04b03", 12)
+UI_TEXT_COLOR = "yellow"
+UI_INPUT_TEXT_COLOR = "black"
 
 def main(file_list): 
     
