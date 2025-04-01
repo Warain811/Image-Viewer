@@ -18,7 +18,7 @@ import numpy as np
 # Local application imports
 from spatial_filtering_window import open_window
 from LSB_watermarking_window import open_bit_plane_window
-from helpers import is_valid_file_type, handle_file_load, show_error_popup
+from helpers import is_valid_file_type, handle_file_load, show_error_popup, convert_to_RGB
 
 # Constants
 # File paths
@@ -44,25 +44,13 @@ UI_FONT = ("04b03", 12)
 UI_TEXT_COLOR = "yellow"
 UI_INPUT_TEXT_COLOR = "black"
 
-def main(file_list): 
-    
-    flag = 0
-    current_image = ""
-    # function to convert any image file into a png
-    def convert_to_RGB(current_image):
-        file_name = os.path.basename(current_image)  # get the image's filename only
-        
-        if(file_name.split(".")[1] == "png"):    # check if image is in PNG format [1] [2]
-            png = Image.open(current_image).convert('RGBA')  # convert the image into RGBA
-            png.load()               # required for png.split()
-            background = Image.new("RGB", png.size, (255, 255, 255)) # if the image has a transparent background, turn the background white
-            background.paste(png, mask=png.split()[3])      # 3 is the alpha channel
-            background.save('tmp.png', 'PNG')       # save the converted into a png file 
+class ImageViewerState:
+    def __init__(self):
+        self.transformation_mode = None  # Replaces 'flag'
+        self.current_image_path = ""    # Replaces 'current_image'
 
-        elif(file_name.split(".")[1] != "pcx"):     # every other image format besides .png and .pcx
-            image = Image.open(current_image)       # open the image
-            RGB_image = image.convert("RGB")        # convert the image into RGB
-            RGB_image.save("tmp.png")           # save the converted into a png file
+def main(file_list): 
+    state = ImageViewerState()
 
     # function to display the image
     def transformation(transform_name, transform_image, transformation):
@@ -417,25 +405,25 @@ def main(file_list):
 
         elif event == "right":  # update the slider value 
 
-            if(flag == 1):
+            if(state.transformation_mode == 1):
                 increment = round(values["-slider-"], 1)
                 value = increment+1
                 update_slider(value)
 
-            elif(flag == 2):
+            elif(state.transformation_mode == 2):
                 increment = round(values["-slider-"], 1)
                 value = increment+0.1
                 update_slider(value)           
 
         elif event == "left":
 
-            if(flag == 1):
+            if(state.transformation_mode == 1):
                 decrement = round(values["-slider-"], 1)
                 if (decrement != 0):
                     value = decrement-1
                     update_slider(value)
                 
-            elif(flag == 2):
+            elif(state.transformation_mode == 2):
                 decrement = round(values["-slider-"], 1)
                 if (decrement != 0):
                     value = decrement-0.1
@@ -446,8 +434,8 @@ def main(file_list):
                 clear_info()     
                 file_list_name = values["-FILE LIST-"][0]     
                 full_image, color_palette, image_dimensions = image_open(file_list_name)
-                current_image = file_list_name
-                clear_color_pallete(current_image)
+                state.current_image_path = file_list_name
+                clear_color_pallete(state.current_image_path)
             except:
                 pass
 
@@ -459,17 +447,17 @@ def main(file_list):
             elif not is_valid_file_type(file_exist):
                 show_error_popup("Please choose an image file.", font)
             else:
-                current_image, full_image, color_palette, image_dimensions = handle_file_load(
+                state.current_image_path, full_image, color_palette, image_dimensions = handle_file_load(
                     file_path, file_list, window, image_open, clear_color_pallete
                 )
             
         elif event == "R":    # show red channel [16]
-            if current_image == "":         
+            if state.current_image_path == "":         
                 pass
             else:
                 clear_info()
-                clear_color_pallete(current_image)
-                convert_to_RGB(current_image)   
+                clear_color_pallete(state.current_image_path)
+                convert_to_RGB(state.current_image_path)   
 
                 image = cv2.imread("tmp.png")   # cv2.imread() returns a BGR (Blue-Green-Red) array
                 r = image.copy()
@@ -480,12 +468,12 @@ def main(file_list):
                 histogram(r)        
                 
         elif event == "G":      # show the green channel [16]
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
                 clear_info()
-                clear_color_pallete(current_image)
-                convert_to_RGB(current_image)
+                clear_color_pallete(state.current_image_path)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   # cv2.imread() returns a BGR (Blue-Green-Red) array
                 g = image.copy()
@@ -496,12 +484,12 @@ def main(file_list):
                 histogram(g)     
 
         elif event == "B":       # show the blue channel [16]
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
                 clear_info()
-                clear_color_pallete(current_image)
-                convert_to_RGB(current_image)
+                clear_color_pallete(state.current_image_path)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 b = image.copy()
@@ -512,12 +500,12 @@ def main(file_list):
                 histogram(b)
 
         elif event == "grayscale":       # apply grayscale transformation [5]
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
                 clear_info()
-                clear_color_pallete(current_image)
-                convert_to_RGB(current_image)
+                clear_color_pallete(state.current_image_path)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 grayscale = image.copy()
@@ -528,12 +516,12 @@ def main(file_list):
                 transformation("-transformation-", "-TRANSFORMATION-", "Grayscale Transformation:")   # display grayscale image
     
         elif event == "negative":       # apply negative transformation [6]
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
                 clear_info()
-                clear_color_pallete(current_image)
-                convert_to_RGB(current_image)
+                clear_color_pallete(state.current_image_path)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 negative = image.copy()
@@ -543,12 +531,12 @@ def main(file_list):
                 transformation("-transformation-", "-TRANSFORMATION-", "Negative Transformation:")  # display negatively transformed image
         
         elif event == "negative_grayscale":       # apply negative transformation of grayscale image [6]
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
                 clear_info()
-                clear_color_pallete(current_image)
-                convert_to_RGB(current_image)
+                clear_color_pallete(state.current_image_path)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 negative_grayscale = image.copy()
@@ -560,47 +548,47 @@ def main(file_list):
                 transformation("-transformation-", "-TRANSFORMATION-", "Negative Transformation:")  # display negative transformation of grayscale image
         
         elif event == "b_and_w":       # apply black and white transformation
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
 
                 clear_info()
-                clear_color_pallete(current_image)
+                clear_color_pallete(state.current_image_path)
                 show_slider(255)
 
-                png = Image.open(current_image).convert('RGBA')  # convert the image into RGBA
+                png = Image.open(state.current_image_path).convert('RGBA')  # convert the image into RGBA
                 background = Image.new("RGB", png.size, (255, 255, 255)) # create a white, blank image with the same dimensions as the input image 
                 background.save('transformation.png', 'PNG')       # save the converted into a png file
 
                 transformation("-transformation-", "-TRANSFORMATION-", "Black and White Transformation:")  # display the white, blank image 
                 window["threshold"].update("B&W Threshold Value:")  
 
-                flag = 1
+                state.transformation_mode = 1
                 
         elif event == "gamma":       # apply gamma transformation 
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
 
                 clear_info() 
-                clear_color_pallete(current_image)
+                clear_color_pallete(state.current_image_path)
                 show_slider(20)        
                    
-                convert_to_RGB(current_image)
+                convert_to_RGB(state.current_image_path)
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 cv2.imwrite("transformation.png", image)     
 
                 transformation("-transformation-", "-TRANSFORMATION-", "Gamma Transformation:")     # display the image   
                 window["threshold"].update("Gamma Threshold Value:")
 
-                flag = 2
+                state.transformation_mode = 2
 
         elif event == "Apply":       # apply black and white, or gamma transformation
 
-            if (flag == 1):     # check if user clicked on button (with key "b_and_w")
+            if (state.transformation_mode == 1):     # check if user clicked on button (with key "b_and_w")
                 slider = int(math.floor(float(values["threshold_value"])))
               
-                convert_to_RGB(current_image)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 negative_grayscale = image.copy()
@@ -618,10 +606,10 @@ def main(file_list):
                 cv2.imwrite("transformation.png", gray)
                 transformation("-transformation-", "-TRANSFORMATION-", "Black and White Transformation:")   # display the black and white image 
                 
-            elif (flag == 2):    # check if user clicked on button (with key "gamma") [7] [8]
+            elif (state.transformation_mode == 2):    # check if user clicked on button (with key "gamma") [7] [8]
                 slider = float(values["threshold_value"]) 
                 
-                convert_to_RGB(current_image)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   imread() returns a BGR (Blue-Green-Red) array
                 gamma_transform = image.copy()
@@ -632,10 +620,10 @@ def main(file_list):
             
         elif event == "spatial_filtering":       # apply black and white, or gamma transformation
             
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
-                convert_to_RGB(current_image)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 grayscale = image.copy()
@@ -643,15 +631,15 @@ def main(file_list):
                 grayscale = np.uint8(0.2989 * r + 0.5870 * g + 0.1140 * b)     #  ITU-R 601-2 luma transform
                 cv2.imwrite("transformation.png", grayscale)
 
-                file_name = os.path.basename(current_image)  # get the image's filename only
+                file_name = os.path.basename(state.current_image_path)  # get the image's filename only
                 open_window(file_name, grayscale, full_image, color_palette, image_dimensions)
         
         elif event == "bit_plane":
 
-            if current_image == "":
+            if state.current_image_path == "":
                 pass
             else:
-                convert_to_RGB(current_image)
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 grayscale = image.copy()
@@ -659,7 +647,7 @@ def main(file_list):
                 grayscale = np.uint8(0.2989 * r + 0.5870 * g + 0.1140 * b)     #  ITU-R 601-2 luma transform
                 cv2.imwrite("transformation.png", grayscale)
 
-                open_bit_plane_window(current_image, grayscale)
+                open_bit_plane_window(state.current_image_path, grayscale)
 
     delete_file("tmp.png")
     delete_file("transformation.png")
