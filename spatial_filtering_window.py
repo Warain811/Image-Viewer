@@ -115,13 +115,52 @@ def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette
 
     def contraharmonic(Q):      # function for contraharmonic mean filter
         original_image = np.array(grayscale) / 255      # normalize the image    
-        num = np.power(original_image, Q + 1)        
-        denom = np.power(original_image, Q)
         kernel = np.array([ [1, 1, 1],          # create the filter mask  
                             [1, 1, 1],
                             [1, 1, 1] ])
-        output = cv2.filter2D(src = num, ddepth= -1, kernel = kernel) / cv2.filter2D(src = denom, ddepth = -1, kernel = kernel)    # apply the filter to the images to get the output image
+        output = apply_power_filter(original_image, Q, kernel)    # apply the filter to the images to get the output image
         return (output * 255)
+
+    def apply_power_filter(original_image, Q, kernel):
+        # Add small epsilon to avoid divide by zero
+        eps = 1e-10
+        original_image = original_image.astype(np.float64) + eps
+        
+        num = np.power(original_image, Q + 1)
+        denom = np.power(original_image, Q)
+        
+        # Apply filter and handle potential division by zero
+        filtered_num = cv2.filter2D(src=num, ddepth=-1, kernel=kernel)
+        filtered_denom = cv2.filter2D(src=denom, ddepth=-1, kernel=kernel)
+        
+        # Avoid division by zero
+        output = np.zeros_like(filtered_num)
+        mask = filtered_denom != 0
+        output[mask] = filtered_num[mask] / filtered_denom[mask]
+        
+        return output
+
+    def apply_laplacian_sharpening(grayscale, c, LaplacianMask):
+        """Apply Laplacian sharpening to an image.
+        
+        Args:
+            grayscale: Input grayscale image
+            c: Sharpening constant
+            LaplacianMask: Laplacian mask
+            
+        Returns:
+            Sharpened image as uint8
+        """
+        # Convert inputs to float64 for calculations
+        grayscale = grayscale.astype(np.float64)
+        LaplacianMask = LaplacianMask.astype(np.float64)
+        
+        # Perform sharpening operation
+        result = grayscale + c * LaplacianMask
+        
+        # Clip values to valid range and convert back to uint8
+        result = np.clip(result, 0, 255)
+        return result.astype(np.uint8)
 
     filter_column = [
         [sg.Button('Original Image', key = 'original_image', pad = ((5, 0), (0, 0))),],
@@ -328,7 +367,7 @@ def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette
                                         kernel = kernel)               # cv2.filter2D adds padding
 
             c = -1
-            sharpenedImage = np.clip((laplacian_grayscale + c*LaplacianMask), 0, 255)
+            sharpenedImage = apply_laplacian_sharpening(laplacian_grayscale, c, LaplacianMask)
 
             cv2.imwrite('transformation.png', sharpenedImage)
             transformation("third", "-third_image-", "Laplacian Filter in Spatial Domain:", "transformation.png")     # display the filtered image
