@@ -398,18 +398,21 @@ def main(file_list):
         window['threshold_value'].update(values['-slider-'])
            
         if event == "Browse":       # this lets the user choose the image from a directory
-            file_path = sg.popup_get_file(file_types =  # file types that are allowed for the application, this gets the file path of the image
-            [
-                ("PCX (*.pcx)", "*.pcx"),
-                ("JPEG (*.jpg)", "*.jpg"),
-                ("PNG (*.png)", "*.png"),
-                ("GIF (*.gif)", "*.gif"), 
-                ("All files (*.*)", "*.*")
-            ], 
-            no_window= True, message = "")
-
-            window['-FILE-'].update(os.path.basename(file_path))    # this updates the input element-
-                                                                    # (with the key '-FILE-') with the file name of the image
+            file_path = sg.popup_get_file(
+                file_types=[
+                    ("PCX (*.pcx)", "*.pcx"),
+                    ("JPEG (*.jpg)", "*.jpg"), 
+                    ("PNG (*.png)", "*.png"),
+                    ("GIF (*.gif)", "*.gif"),
+                    ("All files (*.*)", "*.*")
+                ],
+                no_window=True,
+                message=""
+            )
+            
+            # Only update if a file was actually selected
+            if file_path:  # Check if file_path is not None
+                window['-FILE-'].update(os.path.basename(file_path))
 
         elif event == "right":  # update the slider value 
 
@@ -447,21 +450,20 @@ def main(file_list):
             except:
                 pass
 
-        elif event == "Load Image":         # this  updates the file history whenever an image has been loaded,-
+        elif event == "Load Image":  # "Load Image" event
             clear_info()
-            file_exist = values['-FILE-']      # and views the image
-            
-            if file_exist == "":
+            file_exist = values['-FILE-']
+            if not file_exist:
                 pass
-            elif not file_exist.endswith(('.gif', '.jpg', '.png', '.pcx', '.bmp')): # show error when user didn't choose an image
-                sg.Popup("Please choose an image file.", font = font, button_type = 5, title = "Error!")
+            elif not file_exist.lower().endswith(('.gif', '.jpg', '.png', '.pcx', '.bmp')):
+                sg.Popup("Please choose an image file.", font=font, button_type=5, title="Error!")
             else:
-                file_list.append(file_path)     # if user has chosen a image, append its file path to the list inside the listbox,-
-                window["-FILE LIST-"].update(file_list)    # and call image_open()
                 if os.path.exists(file_path):
+                    file_list.append(file_path)
+                    window["-FILE LIST-"].update(file_list)
                     full_image, color_palette, image_dimensions = image_open(file_path)
-                current_image = file_path
-                clear_color_pallete(current_image)
+                    current_image = file_path
+                    clear_color_pallete(current_image)
             
         elif event == "R":    # show red channel [16]
             if current_image == "":         
@@ -675,130 +677,3 @@ if __name__ == "__main__":  # declare an empty file_list for the listbox element
                             # before we call the main function
     file_list = []
     main(file_list)
-
-# Sources:
-
-# [1]
-# TItle: Image Module (Pillow Documentation) 
-# Author: Pillow
-# Date: n.d.
-# https://pillow.readthedocs.io/en/stable/reference/Image.html
-
-# [2]
-# Title: Convert RGBA PNG to RGB with PIL
-# Author: Yuji 'Tomita' Tomita 
-# Date: Feb. 27, 2012 
-# URL: https://stackoverflow.com/questions/9166400/convert-rgba-png-to-rgb-with-pil
-
-# [3]
-# Title: Python - Calculate histogram of image 
-# Author: Ondro
-# Date: March 4, 2014
-# URL: https://stackoverflow.com/questions/22159160/python-calculate-histogram-of-image
-
-# [4]
-# Title: 2. Histogram Calculation in Numpy 
-# Author: OpenCV
-# Date: n.d.
-# https://docs.opencv.org/4.x/d1/db7/tutorial_py_histogram_begins.html#:~:text=Histogram%20Calculation%20in%20Numpy&text=But%20bins%20will%20have%20257,256%20at%20end%20of%20bins.
-
-# [5]
-# Title: How can I convert an RGB image into Grayscale in Python? 
-# Author: waspinator
-# Date: Aug 30, 2012 
-# https://stackoverflow.com/questions/12201577/how-can-i-convert-an-rgb-image-into-grayscale-in-python
-
-# [6]
-# Title: How to Generate a Negative Image in Python using OpenCV 
-# Author: Abhishek Sharma
-# Date: Feb. 2, 2022
-# URL: https://medium.com/mlearning-ai/how-to-generate-a-negative-image-in-python-using-opencv-interesting-project-439da0c19544
-
-# [7]
-# Title: How to Set the Best Value for Gamma Correction 
-# Author: fmw42
-# Date: May 9, 2020
-# https://stackoverflow.com/questions/61695773/how-to-set-the-best-value-for-gamma-correction
-
-# [8]
-# Title: Python | Intensity Transformation Operations on Images
-# Author: GeeksForGeeks
-# Date: Aug. 2, 2019
-# URL: https://www.geeksforgeeks.org/python-intensity-transformation-operations-on-images/
-
-# [9]
-# Title: Spatial Filters – Averaging filter and Median filter in Image Processing
-# Author: GeeksForGeeks
-# Date: Nov. 9, 2021
-# URL: https://www.geeksforgeeks.org/spatial-filters-averaging-filter-and-median-filter-in-image-processing/
-
-# [10]
-# Title: Add a “salt and pepper” noise to an image with Python
-# Author: GeeksForGeeks
-# Date: Oct. 27, 2021
-# URL: https://www.geeksforgeeks.org/add-a-salt-and-pepper-noise-to-an-image-with-python/#:~:text=Salt%2Dand%2Dpepper%20noise%20is,%2C%20bit%20transmission%20error%2C%20etc.&text=Below%20is%20the%20implementation%3A,Python
-
-# [11]
-# Title: Python#9 Frequency Domain Image Filter using Laplacian Filter in Python
-# Author: Made Python
-# Date: June 22, 2022
-# URL: https://www.youtube.com/watch?v=i-Rvo48vBKA
-
-# [12]
-# Title: Python#11 Unsharp Masking and Highboost Filterin in Spatial Domain
-# Author: Made Python
-# Date: July 23, 2022
-# URL: https://www.youtube.com/watch?v=IpqZ7D1km5g
-
-# [13]
-# Title: Python#10 Laplacian Filter in Spatial Domain using Python
-# Author: Made Python
-# Date: July 13, 2022
-# URL: https://www.youtube.com/watch?v=5l0y-LMM1c0
-
-# [14]
-# Title: Python#13 Edge Detection using Sobel Operator in Python
-# Author: Alexandre Damião
-# Date: Jun 3, 2019
-# URL: https://www.youtube.com/watch?v=eifdexvpnq0
-
-# [15]
-# Title: PCX
-# Author: Wikipedia
-# Date: n.d.
-# URL: https://en.wikipedia.org/wiki/PCX
-
-# [16]
-# Title: How to extract individual channels from an RGB image
-# Author: nathancy
-# Date: Aug 7, 2019
-# URL: https://stackoverflow.com/questions/57398643/how-to-extract-individual-channels-from-an-rgb-image
-
-# [17]
-# Title: EL5123 - Image Processsing
-# Author: Yao Wong
-# Date: n.d.
-# URL: https://eeweb.engineering.nyu.edu/~yao/EL5123/lecture7_median_morph.pdf
-
-# [18]
-# Title: Introduction to Image Processing in Python with OpenCV
-# Author: Muhammad Junaid Khalid
-# URL: https://stackabuse.com/introduction-to-image-processing-in-python-with-opencv/
-
-# [19]
-# Title: Extract bit planes from an Image in Matlab
-# Author: GeeksforGeeks
-# Date: May 28, 2017
-# URL: https://www.geeksforgeeks.org/extract-bit-planes-image-matlab/
-
-# [20]
-# Title: Python Program to Convert Binary to Decimal
-# Author: CodesCracker
-# Date: n.d.
-# URL: https://codescracker.com/python/program/python-program-convert-binary-to-decimal.htm
-
-# [21]
-# Title: RLE (Run-Length Encoding) compression for Images
-# Author: Coding Adventures
-# Date: June 22, 2022
-# URL: https://www.youtube.com/watch?v=QXfhaeIXZRo&t=1770s
