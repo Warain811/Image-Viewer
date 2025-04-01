@@ -19,6 +19,8 @@ import numpy as np
 from spatial_filtering_window import open_window
 from LSB_watermarking_window import open_bit_plane_window
 from helpers import is_valid_file_type, handle_file_load, show_error_popup, convert_to_RGB
+from ui.image_display import ImageDisplayManager
+from ui.config import UI_THEME, UI_FONT, UI_TEXT_COLOR, UI_INPUT_TEXT_COLOR
 
 # Constants
 # File paths
@@ -38,41 +40,114 @@ DEFAULT_IMAGE_SIZE = (256, 256)
 COLOR_PALETTE_SIZE = (64, 64)
 THUMBNAIL_SIZE = (256, 256)
 
-# UI constants
-UI_THEME = 'DarkGrey8'
-UI_FONT = ("04b03", 12)
-UI_TEXT_COLOR = "yellow"
-UI_INPUT_TEXT_COLOR = "black"
-
+sg.theme(UI_THEME)   # theme of the program
 class ImageViewerState:
     def __init__(self):
         self.transformation_mode = None  # Replaces 'flag'
         self.current_image_path = ""    # Replaces 'current_image'
 
+file_column = [     # left column of the program
+    [
+        sg.Text("File Name:", text_color = UI_TEXT_COLOR),       # text element
+        sg.Input(size=(26, 1), disabled = True, text_color = UI_INPUT_TEXT_COLOR, key="-FILE-"),    # input element with key 'FILE'
+        sg.Button('Browse'),        # 'browse' button element
+        sg.Button("Load Image"),    # 'load image' button element 
+    ],
+
+    [
+        sg.Text("Load History:", size = (60, 1), text_color = UI_TEXT_COLOR, justification='center')   # text element  
+    ],
+
+    [
+        sg.Listbox      # listbox element that shows the list of images that were previously loaded
+        (
+            values=[], 
+            enable_events=True, 
+            size=(55, 7), 
+            key="-FILE LIST-", 
+            horizontal_scroll=True
+        ),
+    ],
+
+    [sg.Text("Transformation Options:", size = (60, 1), text_color = UI_TEXT_COLOR, justification='center'), ], # text element
+    
+    [
+        sg.Button('R', image_filename ='red.png', pad = ((5, 0), (0, 0)), border_width = 1, tooltip=" Show Red Channel and its Histogram "),     # button elements that deal with transforming the image
+        sg.Button('G', image_filename ='green.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Green Channel and its Histogram "),        
+        sg.Button('B', image_filename ='blue.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Blue Channel and its Histogram "),       
+        sg.Button('G', key = 'grayscale', image_filename ='grayscale.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Grayscale Transformation " ),        
+        sg.Button(key = 'negative_grayscale', image_filename ='negative_grayscale.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation to Grayscale Image  " ),        
+        sg.Button(key = 'negative', image_filename ='negative.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation " ),        
+        sg.Button(key = 'b_and_w', image_filename ='b_and_w.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Black and White Transformation Via Manual Thresholding " ),        
+        sg.Button(key = 'gamma', image_filename ='gamma.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Power Law (Gamma) Transformation " ),
+        sg.Button(key = 'bit_plane', image_filename ='bit_plane.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Watermarking through Bit Planes " ),         
+    ],
+    
+    [sg.Button('Spatial Filtering', key = 'spatial_filtering', image_filename ='spatial_filtering.png', pad = ((5, 0), (15, 0)), border_width = 1, tooltip=" Apply Spatial Filtering ")],     # button element for spatial filtering
+          
+]
+
+image_viewer_column = [     # right column of the program
+
+    [sg.Text("View of the image:", text_color = UI_TEXT_COLOR, justification = 'center')],     # text elements
+    [
+        sg.Image(key="-IMAGE-", size = (320, 240), filename="empty.png"),   # image elements
+        sg.Image(key="-colorpalette-", size = (90, 90)),                  
+    ], 
+    [sg.Text("")],      
+    [sg.Text(size=(30, 1), key="-headerinfo-", text_color = UI_TEXT_COLOR, justification = 'center')],   # these text elements-
+    [sg.Text(size=(30, 1), key="-manufacturer-", justification = 'center')],                        # represent the PCX header information
+    [sg.Text(size=(30, 1), key="-version-", justification = 'center')], 
+    [sg.Text(size=(30, 1), key="-encoding-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-bitsperpixel-", justification = 'center')],
+    [sg.Text(size=(40, 1), key="-dimensions-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-hdpi-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-vdpi-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-colorplanes-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-bytesperline-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-paletteinformation-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-hss-", justification = 'center')],
+    [sg.Text(size=(30, 1), key="-vss-", justification = 'center')],    
+]
+
+transformation_column = [
+    [sg.Text(size=(45, 1), key="-transformation-", text_color = UI_TEXT_COLOR, justification = 'center')],   # elements from 217-229  
+    [sg.Image(key="-TRANSFORMATION-", size = (320, 240))],                                              # are for image transforming
+    [
+        sg.Input(size=(5, 1), text_color = UI_INPUT_TEXT_COLOR, key="threshold_value", disabled=True),  
+        sg.Text("", key = "threshold", text_color = UI_TEXT_COLOR),
+    ],    
+
+    [
+        sg.Slider(range = (0, 255), key='-slider-', orientation='h', enable_events=True, disable_number_display= True, resolution = False),
+        sg.Button(key='left', image_filename = "left_arrow.png", pad = ((2, 0), (3, 0))),
+        sg.Button(key='right', image_filename = "right_arrow.png", pad = ((3, 0), (3, 0))),
+        sg.Button('Apply', key='Apply', pad = ((10, 0), (10, 0))),        
+    ],
+
+    [sg.Text(size=(30, 1), key="-histogram-", text_color = UI_TEXT_COLOR, justification = 'center')],   # text element
+    [sg.Image(key="-HISTOGRAM-")], # image element for the histogram
+]
+
+layout = [      # this defines the window's contents
+    [
+        sg.Column(file_column, vertical_alignment='center', p = ((0, 3), (60, 75))),    # column element
+        sg.VSeperator(),       # this is a vertical line that shows the separation of the columns
+        sg.Column(image_viewer_column, element_justification = "center", expand_y= True),   # column element
+        sg.VSeperator(),       # this is a vertical line that shows the separation of the columns
+        sg.Column(transformation_column, element_justification = "center", expand_y= True),   # column element
+    ]
+]
+
+
+window = sg.Window("Image Viewer", layout, font = UI_FONT, resizable = True, finalize = True)   # this showcases the layout of our program in a window
+
+# Initialize display manager
+display_manager = ImageDisplayManager(window)
+
+
 def main(file_list): 
     state = ImageViewerState()
-
-    # function to display the image
-    def transformation(transform_name, transform_image, transformation):
-        image = Image.open("transformation.png")     # open the transformed image [1]
-        image.thumbnail((256, 256))     # resize the image
-        window[transform_name].update(transformation)   
-        window[transform_image].update(data = ImageTk.PhotoImage(image))    # display the image's respective transformation
-
-    # function to get the histogram of an image
-    def histogram(image):    # calculate the histogram [3] [4]
-        plt.ticklabel_format(style='plain')
-        vals = image.sum(axis = 2).flatten()    # flatten the channel into a 1D array
-        counts, bins = np.histogram(vals, range(257))   #   calculate the histogram 
-        plt.bar(bins[:-1] - 0.5, counts, width=1, edgecolor='none')     # plot histogram centered on values 0 to 255
-        plt.xlim([-2, 255.5])
-        plt.savefig('histogram.png', bbox_inches='tight', dpi=60)   # save the histogram as an image
-        plt.close()
-
-        window["-histogram-"].update("Histogram:")   
-        window["-HISTOGRAM-"].update("histogram.png")     # display the histogram
-
-        os.remove("histogram.png")      # delete the generated image
 
     # function to show the slider widget
     def show_slider(slider_value):
@@ -272,104 +347,7 @@ def main(file_list):
         file_exists = exists(file_name)
         if file_exists:  
             os.remove(file_name)
-
-    sg.theme('DarkGrey8')   # theme of the program
-    font = ("04b03", 12)     # font style of the program
-
-    file_column = [     # left column of the program
-        [
-            sg.Text("File Name:", text_color = "yellow"),       # text element
-            sg.Input(size=(26, 1), disabled = True, text_color = "black", key="-FILE-"),    # input element with key 'FILE'
-            sg.Button('Browse'),        # 'browse' button element
-            sg.Button("Load Image"),    # 'load image' button element 
-        ],
-
-        [
-            sg.Text("Load History:", size = (60, 1), text_color = "yellow", justification='center')   # text element  
-        ],
-    
-        [
-            sg.Listbox      # listbox element that shows the list of images that were previously loaded
-            (
-                values=[], 
-                enable_events=True, 
-                size=(55, 7), 
-                key="-FILE LIST-", 
-                horizontal_scroll=True
-            ),
-        ],
-
-        [sg.Text("Transformation Options:", size = (60, 1), text_color = "yellow", justification='center'), ], # text element
-        
-        [
-            sg.Button('R', image_filename ='red.png', pad = ((5, 0), (0, 0)), border_width = 1, tooltip=" Show Red Channel and its Histogram "),     # button elements that deal with transforming the image
-            sg.Button('G', image_filename ='green.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Green Channel and its Histogram "),        
-            sg.Button('B', image_filename ='blue.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Blue Channel and its Histogram "),       
-            sg.Button('G', key = 'grayscale', image_filename ='grayscale.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Grayscale Transformation " ),        
-            sg.Button(key = 'negative_grayscale', image_filename ='negative_grayscale.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation to Grayscale Image  " ),        
-            sg.Button(key = 'negative', image_filename ='negative.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation " ),        
-            sg.Button(key = 'b_and_w', image_filename ='b_and_w.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Black and White Transformation Via Manual Thresholding " ),        
-            sg.Button(key = 'gamma', image_filename ='gamma.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Power Law (Gamma) Transformation " ),
-            sg.Button(key = 'bit_plane', image_filename ='bit_plane.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Watermarking through Bit Planes " ),         
-        ],
-        
-        [sg.Button('Spatial Filtering', key = 'spatial_filtering', image_filename ='spatial_filtering.png', pad = ((5, 0), (15, 0)), border_width = 1, tooltip=" Apply Spatial Filtering ")],     # button element for spatial filtering
-             
-    ]
-
-    image_viewer_column = [     # right column of the program
-
-        [sg.Text("View of the image:", text_color = "yellow", justification = 'center')],     # text elements
-        [
-            sg.Image(key="-IMAGE-", size = (320, 240), filename="empty.png"),   # image elements
-            sg.Image(key="-colorpalette-", size = (90, 90)),                  
-        ], 
-        [sg.Text("")],      
-        [sg.Text(size=(30, 1), key="-headerinfo-", text_color = "yellow", justification = 'center')],   # these text elements-
-        [sg.Text(size=(30, 1), key="-manufacturer-", justification = 'center')],                        # represent the PCX header information
-        [sg.Text(size=(30, 1), key="-version-", justification = 'center')], 
-        [sg.Text(size=(30, 1), key="-encoding-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-bitsperpixel-", justification = 'center')],
-        [sg.Text(size=(40, 1), key="-dimensions-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-hdpi-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-vdpi-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-colorplanes-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-bytesperline-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-paletteinformation-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-hss-", justification = 'center')],
-        [sg.Text(size=(30, 1), key="-vss-", justification = 'center')],    
-    ]
-
-    transformation_column = [
-        [sg.Text(size=(45, 1), key="-transformation-", text_color = "yellow", justification = 'center')],   # elements from 217-229  
-        [sg.Image(key="-TRANSFORMATION-", size = (320, 240))],                                              # are for image transforming
-        [
-            sg.Input(size=(5, 1), text_color = "black", key="threshold_value", disabled=True),  
-            sg.Text("", key = "threshold", text_color = "yellow"),
-        ],    
-
-        [
-            sg.Slider(range = (0, 255), key='-slider-', orientation='h', enable_events=True, disable_number_display= True, resolution = False),
-            sg.Button(key='left', image_filename = "left_arrow.png", pad = ((2, 0), (3, 0))),
-            sg.Button(key='right', image_filename = "right_arrow.png", pad = ((3, 0), (3, 0))),
-            sg.Button('Apply', key='Apply', pad = ((10, 0), (10, 0))),        
-        ],
-
-        [sg.Text(size=(30, 1), key="-histogram-", text_color = "yellow", justification = 'center')],   # text element
-        [sg.Image(key="-HISTOGRAM-")], # image element for the histogram
-    ]
-    
-    layout = [      # this defines the window's contents
-        [
-            sg.Column(file_column, vertical_alignment='center', p = ((0, 3), (60, 75))),    # column element
-            sg.VSeperator(),       # this is a vertical line that shows the separation of the columns
-            sg.Column(image_viewer_column, element_justification = "center", expand_y= True),   # column element
-            sg.VSeperator(),       # this is a vertical line that shows the separation of the columns
-            sg.Column(transformation_column, element_justification = "center", expand_y= True),   # column element
-        ]
-    ]
-
-    window = sg.Window("Image Viewer", layout, font = font, resizable = True, finalize = True)   # this showcases the layout of our program in a window
+  
     window["-slider-"].update(visible=False)    # these values are initially invisible
     window["Apply"].update(visible=False)
     window["threshold_value"].update(visible=False)
@@ -445,7 +423,7 @@ def main(file_list):
             if not file_exist:
                 pass
             elif not is_valid_file_type(file_exist):
-                show_error_popup("Please choose an image file.", font)
+                show_error_popup("Please choose an image file.", UI_FONT)
             else:
                 state.current_image_path, full_image, color_palette, image_dimensions = handle_file_load(
                     file_path, file_list, window, image_open, clear_color_pallete
@@ -457,15 +435,19 @@ def main(file_list):
             else:
                 clear_info()
                 clear_color_pallete(state.current_image_path)
-                convert_to_RGB(state.current_image_path)   
+                convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   # cv2.imread() returns a BGR (Blue-Green-Red) array
                 r = image.copy()
                 r[:,:,0] = r[:,:,1] = 0     # extract the red channel of the image 
                 cv2.imwrite("transformation.png", r)
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Red Channel:")  # display red channel and its histogram
-                histogram(r)        
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Red Channel:"
+                )
+                display_manager.display_histogram(r)
                 
         elif event == "G":      # show the green channel [16]
             if state.current_image_path == "":
@@ -480,8 +462,12 @@ def main(file_list):
                 g[:,:,0] = g[:,:,2] = 0     # extract the green channel of the image
                 cv2.imwrite("transformation.png", g)
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Green Channel:")    # display green channel and its histogram
-                histogram(g)     
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Green Channel:"
+                )
+                display_manager.display_histogram(g)     
 
         elif event == "B":       # show the blue channel [16]
             if state.current_image_path == "":
@@ -496,8 +482,12 @@ def main(file_list):
                 b[:,:,1] = b[:,:,2] = 0     # extract the blue channel of the image
                 cv2.imwrite("transformation.png", b)
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Blue Channel:")     # display blue channel and its histogram
-                histogram(b)
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Blue Channel:"
+                )
+                display_manager.display_histogram(b)
 
         elif event == "grayscale":       # apply grayscale transformation [5]
             if state.current_image_path == "":
@@ -513,7 +503,11 @@ def main(file_list):
                 gray = np.uint8(0.2989 * r + 0.5870 * g + 0.1140 * b)     #  apply different set of weights for our channel averaging (weights taken from ITU-R 601-2 luma transform)                                                                        
                 cv2.imwrite("transformation.png", gray)
                
-                transformation("-transformation-", "-TRANSFORMATION-", "Grayscale Transformation:")   # display grayscale image
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Grayscale Transformation:"
+                )
     
         elif event == "negative":       # apply negative transformation [6]
             if state.current_image_path == "":
@@ -528,7 +522,11 @@ def main(file_list):
                 negative = abs(255 - negative[:,:,:])   # subtract 255 by the value of each pixel in each color channels
                 cv2.imwrite("transformation.png", negative)
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Negative Transformation:")  # display negatively transformed image
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Negative Transformation:"
+                )
         
         elif event == "negative_grayscale":       # apply negative transformation of grayscale image [6]
             if state.current_image_path == "":
@@ -545,7 +543,11 @@ def main(file_list):
                 neg_gray = abs(255 - gray[:,:])     # subtract by 255 the value of each pixel in the grayscale image
                 cv2.imwrite("transformation.png", neg_gray)
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Negative Transformation:")  # display negative transformation of grayscale image
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Negative Transformation:"
+                )
         
         elif event == "b_and_w":       # apply black and white transformation
             if state.current_image_path == "":
@@ -560,7 +562,11 @@ def main(file_list):
                 background = Image.new("RGB", png.size, (255, 255, 255)) # create a white, blank image with the same dimensions as the input image 
                 background.save('transformation.png', 'PNG')       # save the converted into a png file
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Black and White Transformation:")  # display the white, blank image 
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Black and White Transformation:"
+                )
                 window["threshold"].update("B&W Threshold Value:")  
 
                 state.transformation_mode = 1
@@ -578,7 +584,11 @@ def main(file_list):
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 cv2.imwrite("transformation.png", image)     
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Gamma Transformation:")     # display the image   
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Gamma Transformation:"
+                )
                 window["threshold"].update("Gamma Threshold Value:")
 
                 state.transformation_mode = 2
@@ -604,7 +614,11 @@ def main(file_list):
                             gray[x][y] =  0         # if below threshold, turn the pixel black
                 
                 cv2.imwrite("transformation.png", gray)
-                transformation("-transformation-", "-TRANSFORMATION-", "Black and White Transformation:")   # display the black and white image 
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Black and White Transformation:"
+                )
                 
             elif (state.transformation_mode == 2):    # check if user clicked on button (with key "gamma") [7] [8]
                 slider = float(values["threshold_value"]) 
@@ -616,7 +630,11 @@ def main(file_list):
                 gamma_transform = (255*(np.power((gamma_transform/255), (slider/4)))).clip(0, 255).astype(np.uint8) # s = cr^(γ/4), where c=1, r=[0,255], and γ is any value from 0-20
                                                                                                                     # s = 255*(c(r/255)^(γ/4))
                 cv2.imwrite("transformation.png", gamma_transform)
-                transformation("-transformation-", "-TRANSFORMATION-", "Gamma Transformation:")     # display the gamma transformed image 
+                display_manager.display_transformation(
+                    "-transformation-", 
+                    "-TRANSFORMATION-", 
+                    "Gamma Transformation:"
+                )
             
         elif event == "spatial_filtering":       # apply black and white, or gamma transformation
             
