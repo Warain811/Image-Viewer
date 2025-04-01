@@ -18,7 +18,8 @@ import numpy as np
 # Local application imports
 from spatial_filtering_window import open_window
 from LSB_watermarking_window import open_bit_plane_window
-from helpers import is_valid_file_type, handle_file_load, show_error_popup
+from helpers import is_valid_file_type, handle_file_load, show_error_popup, convert_to_RGB
+from image_processing import apply_grayscale, apply_negative, generate_histogram
 
 # Constants
 # File paths
@@ -48,43 +49,13 @@ def main(file_list):
     
     flag = 0
     current_image = ""
-    # function to convert any image file into a png
-    def convert_to_RGB(current_image):
-        file_name = os.path.basename(current_image)  # get the image's filename only
-        
-        if(file_name.split(".")[1] == "png"):    # check if image is in PNG format [1] [2]
-            png = Image.open(current_image).convert('RGBA')  # convert the image into RGBA
-            png.load()               # required for png.split()
-            background = Image.new("RGB", png.size, (255, 255, 255)) # if the image has a transparent background, turn the background white
-            background.paste(png, mask=png.split()[3])      # 3 is the alpha channel
-            background.save('tmp.png', 'PNG')       # save the converted into a png file 
-
-        elif(file_name.split(".")[1] != "pcx"):     # every other image format besides .png and .pcx
-            image = Image.open(current_image)       # open the image
-            RGB_image = image.convert("RGB")        # convert the image into RGB
-            RGB_image.save("tmp.png")           # save the converted into a png file
-
+    
     # function to display the image
     def transformation(transform_name, transform_image, transformation):
         image = Image.open("transformation.png")     # open the transformed image [1]
         image.thumbnail((256, 256))     # resize the image
         window[transform_name].update(transformation)   
         window[transform_image].update(data = ImageTk.PhotoImage(image))    # display the image's respective transformation
-
-    # function to get the histogram of an image
-    def histogram(image):    # calculate the histogram [3] [4]
-        plt.ticklabel_format(style='plain')
-        vals = image.sum(axis = 2).flatten()    # flatten the channel into a 1D array
-        counts, bins = np.histogram(vals, range(257))   #   calculate the histogram 
-        plt.bar(bins[:-1] - 0.5, counts, width=1, edgecolor='none')     # plot histogram centered on values 0 to 255
-        plt.xlim([-2, 255.5])
-        plt.savefig('histogram.png', bbox_inches='tight', dpi=60)   # save the histogram as an image
-        plt.close()
-
-        window["-histogram-"].update("Histogram:")   
-        window["-HISTOGRAM-"].update("histogram.png")     # display the histogram
-
-        os.remove("histogram.png")      # delete the generated image
 
     # function to show the slider widget
     def show_slider(slider_value):
@@ -326,7 +297,6 @@ def main(file_list):
         ],
         
         [sg.Button('Spatial Filtering', key = 'spatial_filtering', image_filename ='spatial_filtering.png', pad = ((5, 0), (15, 0)), border_width = 1, tooltip=" Apply Spatial Filtering ")],     # button element for spatial filtering
-             
     ]
 
     image_viewer_column = [     # right column of the program
@@ -463,22 +433,18 @@ def main(file_list):
                     file_path, file_list, window, image_open, clear_color_pallete
                 )
             
-        elif event == "R":    # show red channel [16]
-            if current_image == "":         
-                pass
-            else:
+        elif event == "R":  # Show red channel and histogram
+            if current_image:
                 clear_info()
                 clear_color_pallete(current_image)
-                convert_to_RGB(current_image)   
-
-                image = cv2.imread("tmp.png")   # cv2.imread() returns a BGR (Blue-Green-Red) array
+                convert_to_RGB(current_image)
+                image = cv2.imread("tmp.png")
                 r = image.copy()
-                r[:,:,0] = r[:,:,1] = 0     # extract the red channel of the image 
+                r[:, :, 0] = r[:, :, 1] = 0
                 cv2.imwrite("transformation.png", r)
+                transformation("-transformation-", "-TRANSFORMATION-", "Red Channel:")
+                generate_histogram(r)
 
-                transformation("-transformation-", "-TRANSFORMATION-", "Red Channel:")  # display red channel and its histogram
-                histogram(r)        
-                
         elif event == "G":      # show the green channel [16]
             if current_image == "":
                 pass
@@ -493,7 +459,7 @@ def main(file_list):
                 cv2.imwrite("transformation.png", g)
 
                 transformation("-transformation-", "-TRANSFORMATION-", "Green Channel:")    # display green channel and its histogram
-                histogram(g)     
+                generate_histogram(g)     
 
         elif event == "B":       # show the blue channel [16]
             if current_image == "":
@@ -509,38 +475,23 @@ def main(file_list):
                 cv2.imwrite("transformation.png", b)
 
                 transformation("-transformation-", "-TRANSFORMATION-", "Blue Channel:")     # display blue channel and its histogram
-                histogram(b)
+                generate_histogram(b)
 
-        elif event == "grayscale":       # apply grayscale transformation [5]
-            if current_image == "":
-                pass
-            else:
+        elif event == "grayscale":  # Apply grayscale transformation
+            if current_image:
                 clear_info()
                 clear_color_pallete(current_image)
                 convert_to_RGB(current_image)
-
-                image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
-                grayscale = image.copy()
-                r, g, b = grayscale[:,:,2], grayscale[:,:,1], grayscale[:,:,0]  # get the values of each color channel 
-                gray = np.uint8(0.2989 * r + 0.5870 * g + 0.1140 * b)     #  apply different set of weights for our channel averaging (weights taken from ITU-R 601-2 luma transform)                                                                        
-                cv2.imwrite("transformation.png", gray)
-               
-                transformation("-transformation-", "-TRANSFORMATION-", "Grayscale Transformation:")   # display grayscale image
+                apply_grayscale("tmp.png")
+                transformation("-transformation-", "-TRANSFORMATION-", "Grayscale Transformation:")
     
-        elif event == "negative":       # apply negative transformation [6]
-            if current_image == "":
-                pass
-            else:
+        elif event == "negative":  # Apply negative transformation
+            if current_image:
                 clear_info()
                 clear_color_pallete(current_image)
                 convert_to_RGB(current_image)
-
-                image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
-                negative = image.copy()
-                negative = abs(255 - negative[:,:,:])   # subtract 255 by the value of each pixel in each color channels
-                cv2.imwrite("transformation.png", negative)
-
-                transformation("-transformation-", "-TRANSFORMATION-", "Negative Transformation:")  # display negatively transformed image
+                apply_negative("tmp.png")
+                transformation("-transformation-", "-TRANSFORMATION-", "Negative Transformation:")
         
         elif event == "negative_grayscale":       # apply negative transformation of grayscale image [6]
             if current_image == "":
