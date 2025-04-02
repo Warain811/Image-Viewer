@@ -17,15 +17,13 @@ import numpy as np
 # Local application imports
 from spatial_filtering_window import open_window
 from LSB_watermarking_window import open_bit_plane_window
-from helpers import is_valid_file_type, handle_file_load, show_error_popup, convert_to_RGB
+from helpers import is_valid_file_type, handle_file_load, show_error_popup, convert_to_RGB, delete_file
 from ui.image_display import ImageDisplayManager
 from ui.layout import create_layout
 from ui.config import UI_THEME, UI_FONT
 from ui.controls import UIControls
 from color_palette import clear_color_palette
 from image_loader import image_open
-
-sg.theme(UI_THEME)
 
 class ImageViewerState:
     def __init__(self):
@@ -40,13 +38,8 @@ def main(file_list):
     display_manager = ImageDisplayManager(window)
     ui_controls = UIControls(window)
     state = ImageViewerState()
+    sg.theme(UI_THEME)
 
-    # function to delete the image files 
-    def delete_file(file_name):     # delete the generated images
-        file_exists = exists(file_name)
-        if file_exists:  
-            os.remove(file_name)
-  
     window["-slider-"].update(visible=False)    # these values are initially invisible
     window["Apply"].update(visible=False)
     window["threshold_value"].update(visible=False)

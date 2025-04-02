@@ -2,6 +2,7 @@
 import os
 import PySimpleGUI as sg
 from PIL import Image
+from os.path import exists
 
 # Add to top of file if not already present
 TEMP_PNG = "tmp.png"
@@ -63,3 +64,13 @@ def convert_to_RGB(current_image, output_path=TEMP_PNG):
         image = Image.open(current_image)
         RGB_image = image.convert("RGB") 
         RGB_image.save(output_path)
+
+def delete_file(file_name):
+    """Delete a file if it exists.
+    
+    Args:
+        file_name (str): Path to the file to delete
+    """
+    file_exists = exists(file_name)
+    if file_exists:  
+        os.remove(file_name)
