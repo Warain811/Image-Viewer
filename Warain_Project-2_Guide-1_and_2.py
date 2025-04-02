@@ -40,19 +40,6 @@ def main(file_list):
     ui_controls = UIControls(window)
     state = ImageViewerState()
 
-    # function to show the update the slider
-    def clear_info():           # clear and hide widgets whenever another image has been viewed
-        window["-transformation-"].update('')  
-        window["-TRANSFORMATION-"].update('')     
-        window["-histogram-"].update('')   
-        window["-HISTOGRAM-"].update('')  
-        window["-slider-"].update(visible=False) 
-        window["threshold_value"].update(visible=False) 
-        window["Apply"].update(visible=False)
-        window["threshold"].update(visible=False)     
-        window["left"].update(visible=False)  
-        window["right"].update(visible=False)    
-    
     # function to clear the colour palette image
     def clear_color_pallete(current_image):     # clear color palette if current image is not in pcx format
         file_name = os.path.basename(current_image)  
@@ -278,7 +265,7 @@ def main(file_list):
                 
         elif event == "-FILE LIST-":    # call image_open() whenever the the user clicks on the list box element
             try:
-                clear_info()     
+                ui_controls.clear_info()     
                 file_list_name = values["-FILE LIST-"][0]     
                 full_image, color_palette, image_dimensions = image_open(file_list_name)
                 state.current_image_path = file_list_name
@@ -287,7 +274,7 @@ def main(file_list):
                 pass
 
         elif event == "Load Image":  # "Load Image" event
-            clear_info()
+            ui_controls.clear_info()
             file_exist = values['-FILE-']
             if not file_exist:
                 pass
@@ -302,7 +289,7 @@ def main(file_list):
             if state.current_image_path == "":         
                 pass
             else:
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
@@ -322,7 +309,7 @@ def main(file_list):
             if state.current_image_path == "":
                 pass
             else:
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
@@ -342,7 +329,7 @@ def main(file_list):
             if state.current_image_path == "":
                 pass
             else:
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
@@ -362,7 +349,7 @@ def main(file_list):
             if state.current_image_path == "":
                 pass
             else:
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
@@ -382,7 +369,7 @@ def main(file_list):
             if state.current_image_path == "":
                 pass
             else:
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
@@ -401,7 +388,7 @@ def main(file_list):
             if state.current_image_path == "":
                 pass
             else:
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
@@ -423,7 +410,7 @@ def main(file_list):
                 pass
             else:
 
-                clear_info()
+                ui_controls.clear_info()
                 clear_color_pallete(state.current_image_path)
                 ui_controls.show_slider(255)
 
@@ -445,7 +432,7 @@ def main(file_list):
                 pass
             else:
 
-                clear_info() 
+                ui_controls.clear_info() 
                 clear_color_pallete(state.current_image_path)
                 ui_controls.show_slider(20)        
 

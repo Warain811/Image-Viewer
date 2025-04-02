@@ -65,3 +65,29 @@ class UIControls:
         self.window['threshold_value'].update(rounded)
         
         return rounded
+
+    def clear_info(self):
+        """Clear and hide UI elements related to image transformations."""
+        elements_to_clear = [
+            "-transformation-",
+            "-TRANSFORMATION-", 
+            "-histogram-",
+            "-HISTOGRAM-"
+        ]
+        
+        elements_to_hide = [
+            "-slider-",
+            "threshold_value",
+            "Apply", 
+            "threshold",
+            "left",
+            "right"
+        ]
+        
+        # Clear text/image elements
+        for element in elements_to_clear:
+            self.window[element].update('')
+            
+        # Hide control elements    
+        for element in elements_to_hide:
+            self.window[element].update(visible=False)
