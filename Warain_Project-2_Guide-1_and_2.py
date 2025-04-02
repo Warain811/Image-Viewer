@@ -41,11 +41,6 @@ def main(file_list):
     state = ImageViewerState()
 
     # function to show the update the slider
-    def update_slider(value):
-        window['-slider-'].update(round(value, 1))
-        window['threshold_value'].update(round(value, 1))
-    
-    # function to show the update the slider
     def clear_info():           # clear and hide widgets whenever another image has been viewed
         window["-transformation-"].update('')  
         window["-TRANSFORMATION-"].update('')     
@@ -264,30 +259,22 @@ def main(file_list):
                 window['-FILE-'].update(os.path.basename(file_path))
 
         elif event == "right":  # update the slider value 
-
             if(state.transformation_mode == 1):
                 increment = round(values["-slider-"], 1)
-                value = increment+1
-                update_slider(value)
-
+                ui_controls.update_slider(increment + 1)
             elif(state.transformation_mode == 2):
                 increment = round(values["-slider-"], 1)
-                value = increment+0.1
-                update_slider(value)           
+                ui_controls.update_slider(increment + 0.1)
 
         elif event == "left":
-
             if(state.transformation_mode == 1):
                 decrement = round(values["-slider-"], 1)
                 if (decrement != 0):
-                    value = decrement-1
-                    update_slider(value)
-                
+                    ui_controls.update_slider(decrement - 1)
             elif(state.transformation_mode == 2):
                 decrement = round(values["-slider-"], 1)
                 if (decrement != 0):
-                    value = decrement-0.1
-                    update_slider(value)
+                    ui_controls.update_slider(decrement - 0.1)
                 
         elif event == "-FILE LIST-":    # call image_open() whenever the the user clicks on the list box element
             try:

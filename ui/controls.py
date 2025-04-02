@@ -31,3 +31,37 @@ class UIControls:
         self.window["Apply"].update(visible=True)
         self.window["threshold"].update(visible=True)
         self.window["threshold_value"].update(visible=True)
+
+    def update_slider(self, value):
+        """Update slider and threshold value with validation.
+        
+        Args:
+            value: New slider value to set
+            
+        Returns:
+            float: The rounded and clamped value that was set, or None if validation failed
+        """
+        # Convert and validate numeric value 
+        try:
+            value = float(value)
+            if not isinstance(value, (int, float)):
+                return None
+        except (ValueError, TypeError):
+            return None
+            
+        # Round and clamp value based on slider range
+        min_val = 0
+        max_val = self.window['-slider-'].Range[1] or 255
+        rounded = round(min(max(value, min_val), max_val), 1)
+        
+        # Update UI elements atomically
+        self.window.write_event_value('-update-ui-', {
+            '-slider-': rounded,
+            'threshold_value': rounded
+        })
+        
+        # Refresh display
+        self.window['-slider-'].update(rounded)
+        self.window['threshold_value'].update(rounded)
+        
+        return rounded
