@@ -22,6 +22,7 @@ from helpers import is_valid_file_type, handle_file_load, show_error_popup, conv
 from ui.image_display import ImageDisplayManager
 from ui.layout import create_layout
 from ui.config import UI_THEME, UI_FONT
+from ui.controls import UIControls
 
 sg.theme(UI_THEME)
 
@@ -34,19 +35,10 @@ def main(file_list):
     layout = create_layout()
     window = sg.Window("Image Viewer", layout, font=UI_FONT, resizable=True, finalize=True)
     
-    # Initialize display manager after window creation
+    # Initialize managers
     display_manager = ImageDisplayManager(window)
-
+    ui_controls = UIControls(window)
     state = ImageViewerState()
-
-    # function to show the slider widget
-    def show_slider(slider_value):
-        window["left"].update(visible=True)         # turn certain widgets visible for transformation
-        window["right"].update(visible=True) 
-        window["-slider-"].update(visible=True, range = (0, slider_value))   
-        window["Apply"].update(visible=True)
-        window["threshold"].update(visible=True) 
-        window["threshold_value"].update(visible=True) 
 
     # function to show the update the slider
     def update_slider(value):
@@ -446,7 +438,7 @@ def main(file_list):
 
                 clear_info()
                 clear_color_pallete(state.current_image_path)
-                show_slider(255)
+                ui_controls.show_slider(255)
 
                 png = Image.open(state.current_image_path).convert('RGBA')  # convert the image into RGBA
                 background = Image.new("RGB", png.size, (255, 255, 255)) # create a white, blank image with the same dimensions as the input image 
@@ -468,8 +460,8 @@ def main(file_list):
 
                 clear_info() 
                 clear_color_pallete(state.current_image_path)
-                show_slider(20)        
-                   
+                ui_controls.show_slider(20)        
+
                 convert_to_RGB(state.current_image_path)
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
                 cv2.imwrite("transformation.png", image)     
