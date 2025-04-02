@@ -11,19 +11,6 @@ from PIL import Image, ImageTk  #Image for open, ImageTk for display
 import numpy as np
 import random
 
-# Add near top of file after imports
-import logging
-
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('compression.log'),
-        logging.StreamHandler()
-    ]
-)
-
 def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette, RGB_image_dimensions): 
 
     sg.theme('DarkGrey8')   # theme of the program

@@ -5,14 +5,13 @@
 import io
 import os
 from os.path import exists
-import struct
 import math
 
 # Third-party imports
 import cv2
 import PySimpleGUI as sg
 import matplotlib.pyplot as plt
-from PIL import Image, ImageTk  # Image for open, ImageTk for display
+from PIL import Image, ImageTk
 import numpy as np
 
 # Local application imports
@@ -23,7 +22,8 @@ from ui.image_display import ImageDisplayManager
 from ui.layout import create_layout
 from ui.config import UI_THEME, UI_FONT
 from ui.controls import UIControls
-from color_palette import clear_color_palette, create_color_palette, sort_color_palette
+from color_palette import clear_color_palette
+from image_loader import image_open
 
 sg.theme(UI_THEME)
 
@@ -40,153 +40,6 @@ def main(file_list):
     display_manager = ImageDisplayManager(window)
     ui_controls = UIControls(window)
     state = ImageViewerState()
-
-    # function to open an image and the header information
-    def image_open(file):   # function for opening an image
-
-        file_name = os.path.basename(file)  # get the image's filename only
-        if(file_name.split(".")[1] != "pcx"):    # check if image is not in PCX format
-            image = Image.open(file)    # open the file
-            image.thumbnail((256, 256))     # resize the image
-            bio = io.BytesIO()  # convert image into a byte stream
-            image.save(bio, "PNG")      # save the image as PNG
-            window["-IMAGE-"].update(data = bio.getvalue())     # show the image
-            get_headers_info(file)
-            return None, None, None
-            
-        else:   # get pcx image data [15]
-            
-            with open(file, 'rb') as f:     # read the image as binary
-                byte_data = []
-                while (byte := f.read(1)):      # read all the bytes in the image
-                    byte_data.append(int(struct.unpack('B', byte)[0]))
-    
-                ColorPalette = []           #list representing the color palette
-                if (len(byte_data) > 768):          #  color palette is found 768 bytes from the end of the file
-                    for i in range(int(len(byte_data)) - 768, int(len(byte_data)), 3):     # the palette is stored as a sequence of RGB triples
-                        temp_array = []
-                        temp_array.append([byte_data[i], byte_data[i + 1], byte_data[i + 2]])       # group the RGB triples together to represent the color palette
-                        ColorPalette.extend(temp_array)
-
-                # Create and save color palette using new module
-                color_palette_img = create_color_palette(ColorPalette)
-                color_palette_img.save("color_palette.png")
-                window["-colorpalette-"].update("color_palette.png")
-
-                imageData = Image.new('RGB', (256, 256), "black")   # create a completely black 256x256 image for printing the actual image
-                pixels = imageData.load()   # load the pixel map
-                
-                imageColorValues = [[0 for x in range(3)] for y in range(256 * 256)]    # the resulting image will have a height, width, and channel depth of 256, 256, and 3, respectively
-                paletteIndex = []
-                position = 128
-                runlength = 0
-                runvalue = 0
-
-                full_image = np.zeros([256, 256, 3])
-                while (position < int(len(byte_data) - 768) ):  # this range represents where the image data is located ( 128 bytes < position < (byte_data - 768))
-                    Byte = byte_data[position]   
-                    position = position + 1
-
-                    if ((Byte & 0xC0) == 0xC0 and position < (len(byte_data) - 768)):  # RLE pair representing a series of several pixels of a single value
-                        runlength = (Byte & 0x3F)            # run length have a value range of 0-63, and its length can be extracted through bitwise addition 
-                        runvalue = int(byte_data[position])          # run value represents the given palette index for the pixels
-                        position = position + 1
-
-                    else:   # any other case, the byte is interpreted as a single pixel value of a given palette index or color value
-                        runlength = 1
-                        runvalue = Byte 
-                    
-                    for j in range(0, runlength):
-                        paletteIndex.append(runvalue)
-                
-                for i in range(0, 256 * 256):
-                    imageColorValues[i] = ColorPalette[paletteIndex[i]] # get the color from the color palette
-                    y = int(i / 256)                # get the x and y coordinate for the pixel  
-                    x = int(i - (256 * y))
-                    pixels[x, y] = (imageColorValues[i][0], imageColorValues[i][1], imageColorValues[i][2]) # set the  color of the pixel in the appropriate pixel map
-                    full_image[y][x] = (imageColorValues[i][0], imageColorValues[i][1], imageColorValues[i][2])
-                
-                full_image = np.array(full_image)
-                image_dimensions = np.array(full_image)
-                
-                # Use new sort_color_palette function
-                color_palette = sort_color_palette(full_image)
-                
-                imageData.save("tmp.png")
-                window["-IMAGE-"].update("tmp.png")
-
-            f.close()
-            get_headers_info(file)
-            return full_image, color_palette, image_dimensions 
-
-    # function to get the header information
-    def get_headers_info(file):   # get pcx image header data [15]
-
-        headers_list = [    
-            "-manufacturer-", 
-            "-version-", 
-            "-encoding-", 
-            "-bitsperpixel-", 
-            "-dimensions-", 
-            "-hdpi-", 
-            "-vdpi-", 
-            "-colorplanes-", 
-            "-bytesperline-", 
-            "-paletteinformation-", 
-            "-hss-", 
-            "-vss-"
-        ]
-
-        headers_name = [    #    header information
-            "Manufacturer: Zshoft .pcx ",
-            "Version: ",
-            "Encoding: ",
-            "Bits per Pixel: ",
-            "Image Dimensions: ",
-            "HDPI: ",
-            "VDPI: ",
-            "Number of Color Planes: ",
-            "Bytes Per Line: ",
-            "Palette Information: ",
-            "Horizontal Screen Size: ",
-            "Vertical Screen Size: "
-        ]
-
-        file_name = os.path.basename(file)  # get the image's filename only
-        if(file_name.split(".")[1] != "pcx"):    # check if image is not in PCX format 
-            window["-headerinfo-"].update("")      # if it isn't a PCX image, don't display its header information
-            for i in range(len(headers_list)):
-                window[headers_list[i]].update("")   
-        else:       # only pcx file
-            with open(f''+file, 'rb') as pcx:     # read PCX header, and identify the information represented in the bytes
-                headers_info_list_1 = [
-                    str(struct.unpack('B', pcx.read(1))[0]),
-                    str(struct.unpack('B', pcx.read(1))[0]),
-                    str(struct.unpack('B', pcx.read(1))[0]),
-                    str(struct.unpack('B', pcx.read(1))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]) + " " 
-                    + str(struct.unpack('H', pcx.read(2))[0]) + " " 
-                    + str(struct.unpack('H', pcx.read(2))[0]) + " " 
-                    + str(struct.unpack('H', pcx.read(2))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]),
-                ]
-                pcx.seek(65)    # offset by 65 bytes to skip irrelevant information
-                header_info_list_2 = [
-                    str(struct.unpack('B', pcx.read(1))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]),
-                    str(struct.unpack('H', pcx.read(2))[0]),
-                ]
-
-                headers_info_list = headers_info_list_1 + header_info_list_2
-
-                window["-headerinfo-"].update("PCX Header Information:") 
-                window[headers_list[0]].update(headers_name[0] + "(" + headers_info_list[0] + ")")   
-
-                for i in range(1, len(headers_list)):       # show the information
-                     window[headers_list[i]].update(headers_name[i] + headers_info_list[i])   
 
     # function to delete the image files 
     def delete_file(file_name):     # delete the generated images
@@ -245,11 +98,11 @@ def main(file_list):
                 if (decrement != 0):
                     ui_controls.update_slider(decrement - 0.1)
                 
-        elif event == "-FILE LIST-":    # call image_open() whenever the the user clicks on the list box element
+        elif event == "-FILE LIST-":    # call image_open() whenever the user clicks on the list box element
             try:
                 ui_controls.clear_info()     
                 file_list_name = values["-FILE LIST-"][0]     
-                full_image, color_palette, image_dimensions = image_open(file_list_name)
+                full_image, color_palette, image_dimensions = image_open(file_list_name, window)
                 state.current_image_path = file_list_name
                 clear_color_palette(window, state.current_image_path)
             except:
@@ -264,7 +117,7 @@ def main(file_list):
                 show_error_popup("Please choose an image file.", UI_FONT)
             else:
                 state.current_image_path, full_image, color_palette, image_dimensions = handle_file_load(
-                    file_path, file_list, window, image_open, lambda path: clear_color_palette(window, path)
+                    file_path, file_list, window, lambda f: image_open(f, window), lambda path: clear_color_palette(window, path)
                 )
             
         elif event == "R":    # show red channel [16]
