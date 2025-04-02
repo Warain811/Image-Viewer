@@ -11,46 +11,62 @@ from PIL import Image, ImageTk  #Image for open, ImageTk for display
 import numpy as np
 import random
 
+# Add near top of file after imports
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('compression.log'),
+        logging.StreamHandler()
+    ]
+)
+
 def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette, RGB_image_dimensions): 
-   
+
     sg.theme('DarkGrey8')   # theme of the program
     font = ("04b03", 12)     # font style of the program
     
     # function for the decompression algorithm for RGB
     def decompress_rgb(byte_data, ColorPalette):
-        
-        imageData = Image.new('RGB', (RGB_image_dimensions.shape[1], RGB_image_dimensions.shape[0]), "black")   # create a completely black 256x256 image for printing the actual image
+        imageData = Image.new('RGB', (RGB_image_dimensions.shape[1], RGB_image_dimensions.shape[0]), "black")   # create a completely black image
         pixels = imageData.load()   # load the pixel map
         
-        imageColorValues = [[0 for x in range(3)] for y in range(RGB_image_dimensions.shape[1] * RGB_image_dimensions.shape[0])]    # the list will store height, width, and channel depth 
+        imageColorValues = [[0 for x in range(3)] for y in range(RGB_image_dimensions.shape[1] * RGB_image_dimensions.shape[0])]
         paletteIndex = []
         position = 0
-        runlength = 0
-        runvalue = 0
+        
+        try:
+            while position < len(byte_data):
+                Byte = byte_data[position]   
+                position += 1
 
-        while (position < int(len(byte_data)) ):  # this range represents where the image data is located ( 128 bytes < position < (byte_data - 768))
-            Byte = byte_data[position]   
-            position = position + 1
-           
-            if ((Byte & 0xC0) == 0xC0 and position < (len(byte_data))):  # RLE pair representing a series of several pixels of a single value
-                runlength = (Byte & 0x3F)            # run length have a value range of 0-63, and its length can be extracted through bitwise addition 
-                runvalue = int(byte_data[position])          # run value represents the given palette index for the pixels
-                position = position + 1
-
-            else:   # any other case, the byte is interpreted as a single pixel value of a given palette index or color value
-                runlength = 1
-                runvalue = Byte 
+                if ((Byte & 0xC0) == 0xC0 and position < len(byte_data)):  # Check if it's a RLE pair
+                    runlength = Byte & 0x3F  # Extract run length (0-63)
+                    if position < len(byte_data):
+                        runvalue = byte_data[position]  # Get palette index
+                        position += 1
+                        for _ in range(runlength):
+                            if runvalue < len(ColorPalette):
+                                paletteIndex.append(runvalue)
+                else:
+                    # Single pixel value
+                    if Byte < len(ColorPalette):
+                        paletteIndex.append(Byte)
             
-            for j in range(0, runlength):
-                paletteIndex.append(runvalue)
-        
-        for i in range(0, RGB_image_dimensions.shape[0] * RGB_image_dimensions.shape[1]):
-            imageColorValues[i] = ColorPalette[paletteIndex[i]] # get the color from the color palette
-            y = int(i / RGB_image_dimensions.shape[1])                # get the x and y coordinate for the pixel  
-            x = int(i - (RGB_image_dimensions.shape[1] * y))
-            pixels[x, y] = (imageColorValues[i][0], imageColorValues[i][1], imageColorValues[i][2]) # set the  color of the pixel in the appropriate pixel map
-        
-        imageData.save("decompressed.png")
+            # Fill in the image with colors from palette
+            for i in range(min(len(paletteIndex), RGB_image_dimensions.shape[0] * RGB_image_dimensions.shape[1])):
+                if paletteIndex[i] < len(ColorPalette):
+                    imageColorValues[i] = ColorPalette[paletteIndex[i]]
+                    y = i // RGB_image_dimensions.shape[1]
+                    x = i % RGB_image_dimensions.shape[1]
+                    pixels[x, y] = tuple(imageColorValues[i])  # Convert color values to tuple
+            
+            imageData.save("decompressed.png")
+        except Exception as e:
+            print(f"Error during decompression: {str(e)}")
     
     # function for the decompression algorithm for grayscale
     def decompress_grayscale(compressed_data_grayscale, grayscale_color_palette, image_shape):  
@@ -199,7 +215,7 @@ def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette
 
     layout = [      # this defines the window's contents
         [
-            sg.Column(filter_column, vertical_alignment='center', p = ((0, 3), (60, 75))),    # column element
+            sg.Column(filter_column, vertical_alignment='center', p = ((0, 3), (60, 60))),    # column element
             sg.VSeperator(),       # this is a vertical line that shows the separation of the columns
             sg.Column(second_column, element_justification = "center", pad = ((0, 0), (8, 25)), expand_y= True),   # column element
             sg.Column(third_column, element_justification = "center", pad = ((0, 0), (8, 25)), expand_y= True),   # column element
@@ -602,22 +618,27 @@ def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette
             
             compressed_data = []      # list stores information for the compressed image
             i = 0
+
             while(i < int(len(original_image))):    # loop through whole image
                 
                 temp_array = []
                 image_pixel = original_image[i]
                 count = 1
+                palette_index = None
 
-                while(i < int(len(original_image))-1 and count <= 62 and image_pixel == original_image[i+1] ): # group several pixels of a single value into a series
+                while(i < int(len(original_image))-1 and count <= 62 and np.array_equal(image_pixel, original_image[i+1])): # group several pixels of a single value into a series
                     i = i + 1
                     count = count + 1
                     
                 for j in range(len(original_color_palette)):       # get the palette index that represents the color value of the pixel
-                    if image_pixel == original_color_palette[j]:
+                    if np.array_equal(image_pixel, original_color_palette[j]):
                         palette_index = j
                         break
+                
+                if palette_index is None:
+                  break
 
-                if(palette_index < 192):        # palette index is less than 192
+                if(palette_index < 192 and palette_index is not None):        # palette index is less than 192
                     if count == 1:          # append palette index directly if count is one (1)
                         temp_array.append(palette_index)
                     elif count > 1:
@@ -641,7 +662,7 @@ def open_window(file_name, original_grayscale, RGB_full_image, RGB_color_palette
 
             total_bytes_from_compression = compressed_data_in_bytes + color_palette_in_bytes    # compute for total bytes represented compressed data
             
-            if (total_bytes_from_compression > original_image_in_bytes):
+            if (total_bytes_from_compression > original_image_in_bytes or compressed_data_in_bytes <= 0):
                 sg.Popup("Size of compressed image is bigger than original image. Please choose different image.", font = font, button_type = 5, title = "Error!")
             else:
 
