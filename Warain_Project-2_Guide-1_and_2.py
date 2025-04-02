@@ -23,6 +23,7 @@ from ui.image_display import ImageDisplayManager
 from ui.layout import create_layout
 from ui.config import UI_THEME, UI_FONT
 from ui.controls import UIControls
+from color_palette import clear_color_palette, create_color_palette, sort_color_palette
 
 sg.theme(UI_THEME)
 
@@ -39,12 +40,6 @@ def main(file_list):
     display_manager = ImageDisplayManager(window)
     ui_controls = UIControls(window)
     state = ImageViewerState()
-
-    # function to clear the colour palette image
-    def clear_color_pallete(current_image):     # clear color palette if current image is not in pcx format
-        file_name = os.path.basename(current_image)  
-        if(file_name.split(".")[1] != "pcx"):
-            window["-colorpalette-"].update('') 
 
     # function to open an image and the header information
     def image_open(file):   # function for opening an image
@@ -73,20 +68,10 @@ def main(file_list):
                         temp_array.append([byte_data[i], byte_data[i + 1], byte_data[i + 2]])       # group the RGB triples together to represent the color palette
                         ColorPalette.extend(temp_array)
 
-                # PIL accesses images in Cartesian co-ordinates, so it is Image[columns, rows]
-                color_palette = Image.new('RGB', (64, 64), "black") # create a completely black 64x64 image for the color palette
-                pixels = color_palette.load()   # create the pixel map
-
-                k = 0
-                for i in range(0, color_palette.size[0], 4):    # for every column (color_palette.size[0] gets the width)
-                    for j in range(0, color_palette.size[1], 4):    # for every row (color_palette.size[1] gets the height)
-                        for x in range(4):              # 4x4 boxes will represent a colour
-                            for y in range(4):
-                                pixels[i + x, j + y] = (ColorPalette[k][0], ColorPalette[k][1], ColorPalette[k][2]) # set the colour accordingly for the pixel located in each column and row in the pixel map
-                        k = k + 1  
-
-                color_palette.save("color_palette.png")
-                window["-colorpalette-"].update("color_palette.png")     # save and show the color palette
+                # Create and save color palette using new module
+                color_palette_img = create_color_palette(ColorPalette)
+                color_palette_img.save("color_palette.png")
+                window["-colorpalette-"].update("color_palette.png")
 
                 imageData = Image.new('RGB', (256, 256), "black")   # create a completely black 256x256 image for printing the actual image
                 pixels = imageData.load()   # load the pixel map
@@ -123,15 +108,12 @@ def main(file_list):
                 
                 full_image = np.array(full_image)
                 image_dimensions = np.array(full_image)
-                full_image = full_image.reshape(full_image.shape[0] * full_image.shape[1], 3)
-
-                new_array = [tuple(row) for row in full_image]
-                colorpalette, counter = np.unique(new_array, axis=0, return_counts=True)
-
-                color_palette = np.uint8(np.array([val for (_, val) in sorted(zip(counter, colorpalette), key=lambda x: x[0], reverse=True)])) # sort color palette- 
-                                                                                                                                    # based on most frequently used
+                
+                # Use new sort_color_palette function
+                color_palette = sort_color_palette(full_image)
+                
                 imageData.save("tmp.png")
-                window["-IMAGE-"].update("tmp.png")     # save and show the image
+                window["-IMAGE-"].update("tmp.png")
 
             f.close()
             get_headers_info(file)
@@ -227,7 +209,7 @@ def main(file_list):
             break
 
         window['threshold_value'].update(values['-slider-'])
-           
+
         if event == "Browse":       # this lets the user choose the image from a directory
             file_path = sg.popup_get_file(
                 file_types=[
@@ -269,7 +251,7 @@ def main(file_list):
                 file_list_name = values["-FILE LIST-"][0]     
                 full_image, color_palette, image_dimensions = image_open(file_list_name)
                 state.current_image_path = file_list_name
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
             except:
                 pass
 
@@ -282,7 +264,7 @@ def main(file_list):
                 show_error_popup("Please choose an image file.", UI_FONT)
             else:
                 state.current_image_path, full_image, color_palette, image_dimensions = handle_file_load(
-                    file_path, file_list, window, image_open, clear_color_pallete
+                    file_path, file_list, window, image_open, lambda path: clear_color_palette(window, path)
                 )
             
         elif event == "R":    # show red channel [16]
@@ -290,7 +272,7 @@ def main(file_list):
                 pass
             else:
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   # cv2.imread() returns a BGR (Blue-Green-Red) array
@@ -310,7 +292,7 @@ def main(file_list):
                 pass
             else:
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   # cv2.imread() returns a BGR (Blue-Green-Red) array
@@ -330,7 +312,7 @@ def main(file_list):
                 pass
             else:
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
@@ -350,7 +332,7 @@ def main(file_list):
                 pass
             else:
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
@@ -370,7 +352,7 @@ def main(file_list):
                 pass
             else:
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
@@ -389,7 +371,7 @@ def main(file_list):
                 pass
             else:
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 convert_to_RGB(state.current_image_path)
 
                 image = cv2.imread("tmp.png")   #   cv2.imread() returns a BGR (Blue-Green-Red) array
@@ -411,7 +393,7 @@ def main(file_list):
             else:
 
                 ui_controls.clear_info()
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 ui_controls.show_slider(255)
 
                 png = Image.open(state.current_image_path).convert('RGBA')  # convert the image into RGBA
@@ -433,7 +415,7 @@ def main(file_list):
             else:
 
                 ui_controls.clear_info() 
-                clear_color_pallete(state.current_image_path)
+                clear_color_palette(window, state.current_image_path)
                 ui_controls.show_slider(20)        
 
                 convert_to_RGB(state.current_image_path)

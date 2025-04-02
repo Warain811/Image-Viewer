@@ -12,12 +12,24 @@ def is_valid_file_type(file_path):
     return file_path.lower().endswith(valid_extensions)
 
 # Function to handle file loading
-def handle_file_load(file_path, file_list, window, image_open, clear_color_pallete):
+def handle_file_load(file_path, file_list, window, image_open, clear_color_palette_fn):
+    """Handle loading a file into the application.
+    
+    Args:
+        file_path (str): Path to the file to load
+        file_list (list): List of loaded files
+        window: The PySimpleGUI window instance
+        image_open (callable): Function to open and process the image
+        clear_color_palette_fn (callable): Function to clear color palette display
+        
+    Returns:
+        tuple: (file_path, full_image, color_palette, image_dimensions) or (None, None, None, None)
+    """
     if os.path.exists(file_path):
         file_list.append(file_path)
         window["-FILE LIST-"].update(file_list)
         full_image, color_palette, image_dimensions = image_open(file_path)
-        clear_color_pallete(file_path)
+        clear_color_palette_fn(file_path)
         return file_path, full_image, color_palette, image_dimensions
     return None, None, None, None
 
