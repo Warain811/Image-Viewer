@@ -1,5 +1,9 @@
+import os
 import PySimpleGUI as sg
 from ui.config import UI_TEXT_COLOR, UI_INPUT_TEXT_COLOR
+
+# Assets directory path
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
 
 def create_file_column():
     """Create the file operations column layout"""
@@ -29,18 +33,18 @@ def create_file_column():
       [sg.Text("Transformation Options:", size = (60, 1), text_color = UI_TEXT_COLOR, justification='center'), ], # text element
       
       [
-          sg.Button('R', image_filename ='red.png', pad = ((5, 0), (0, 0)), border_width = 1, tooltip=" Show Red Channel and its Histogram "),     # button elements that deal with transforming the image
-          sg.Button('G', image_filename ='green.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Green Channel and its Histogram "),        
-          sg.Button('B', image_filename ='blue.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Blue Channel and its Histogram "),       
-          sg.Button('G', key = 'grayscale', image_filename ='grayscale.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Grayscale Transformation " ),        
-          sg.Button(key = 'negative_grayscale', image_filename ='negative_grayscale.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation to Grayscale Image  " ),        
-          sg.Button(key = 'negative', image_filename ='negative.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation " ),        
-          sg.Button(key = 'b_and_w', image_filename ='b_and_w.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Black and White Transformation Via Manual Thresholding " ),        
-          sg.Button(key = 'gamma', image_filename ='gamma.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Power Law (Gamma) Transformation " ),
-          sg.Button(key = 'bit_plane', image_filename ='bit_plane.png', pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Watermarking through Bit Planes " ),         
+          sg.Button('R', image_filename=os.path.join(ASSETS_DIR, 'red.png'), pad = ((5, 0), (0, 0)), border_width = 1, tooltip=" Show Red Channel and its Histogram "),     # button elements that deal with transforming the image
+          sg.Button('G', image_filename=os.path.join(ASSETS_DIR, 'green.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Green Channel and its Histogram "),        
+          sg.Button('B', image_filename=os.path.join(ASSETS_DIR, 'blue.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip="Show Blue Channel and its Histogram "),       
+          sg.Button('G', key = 'grayscale', image_filename=os.path.join(ASSETS_DIR, 'grayscale.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Grayscale Transformation " ),        
+          sg.Button(key = 'negative_grayscale', image_filename=os.path.join(ASSETS_DIR, 'negative_grayscale.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation to Grayscale Image  " ),        
+          sg.Button(key = 'negative', image_filename=os.path.join(ASSETS_DIR, 'negative.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Negative Transformation " ),        
+          sg.Button(key = 'b_and_w', image_filename=os.path.join(ASSETS_DIR, 'b_and_w.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Black and White Transformation Via Manual Thresholding " ),        
+          sg.Button(key = 'gamma', image_filename=os.path.join(ASSETS_DIR, 'gamma.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Power Law (Gamma) Transformation " ),
+          sg.Button(key = 'bit_plane', image_filename=os.path.join(ASSETS_DIR, 'bit_plane.png'), pad = ((10, 0), (0, 0)), border_width = 1, tooltip=" Apply Watermarking through Bit Planes " ),         
       ],
       
-      [sg.Button('Spatial Filtering', key = 'spatial_filtering', image_filename ='spatial_filtering.png', pad = ((5, 0), (15, 0)), border_width = 1, tooltip=" Apply Spatial Filtering ")],     # button element for spatial filtering        
+      [sg.Button('Spatial Filtering', key = 'spatial_filtering', image_filename=os.path.join(ASSETS_DIR, 'spatial_filtering.png'), pad = ((5, 0), (15, 0)), border_width = 1, tooltip=" Apply Spatial Filtering ")],     # button element for spatial filtering        
     ]
 
 def create_image_viewer_column():
@@ -48,7 +52,7 @@ def create_image_viewer_column():
     return [     # right column of the program
       [sg.Text("View of the image:", text_color = UI_TEXT_COLOR, justification = 'center')],     # text elements
       [
-          sg.Image(key="-IMAGE-", size = (320, 240), filename="empty.png"),   # image elements
+          sg.Image(key="-IMAGE-", size = (320, 240), filename=os.path.join(ASSETS_DIR, "empty.png")),   # image elements
           sg.Image(key="-colorpalette-", size = (90, 90)),                  
       ], 
       [sg.Text("")],      
@@ -70,8 +74,8 @@ def create_image_viewer_column():
 def create_transformation_column():
     """Create the transformation column layout"""
     return [
-        [sg.Text(size=(45, 1), key="-transformation-", text_color = UI_TEXT_COLOR, justification = 'center')],   # elements from 217-229  
-        [sg.Image(key="-TRANSFORMATION-", size = (320, 240))],                                              # are for image transforming
+        [sg.Text(size=(45, 1), key="-transformation-", text_color = UI_TEXT_COLOR, justification = 'center')],   
+        [sg.Image(key="-TRANSFORMATION-", size = (320, 240))],                                              
         [
             sg.Input(size=(5, 1), text_color = UI_INPUT_TEXT_COLOR, key="threshold_value", disabled=True),  
             sg.Text("", key = "threshold", text_color = UI_TEXT_COLOR),
@@ -79,8 +83,8 @@ def create_transformation_column():
 
         [
             sg.Slider(range = (0, 255), key='-slider-', orientation='h', enable_events=True, disable_number_display= True, resolution = False),
-            sg.Button(key='left', image_filename = "left_arrow.png", pad = ((2, 0), (3, 0))),
-            sg.Button(key='right', image_filename = "right_arrow.png", pad = ((3, 0), (3, 0))),
+            sg.Button(key='left', image_filename=os.path.join(ASSETS_DIR, "left_arrow.png"), pad = ((2, 0), (3, 0))),
+            sg.Button(key='right', image_filename=os.path.join(ASSETS_DIR, "right_arrow.png"), pad = ((3, 0), (3, 0))),
             sg.Button('Apply', key='Apply', pad = ((10, 0), (10, 0))),        
         ],
 

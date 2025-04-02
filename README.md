@@ -1,35 +1,77 @@
-# Simple Image Program 
+# Image Viewer
 
-This program for CMSC 162 opens images. It also can open 256x256 PCX images, and display their header information.
-Made through Python and PySimpleGUI.
+A desktop application for viewing, transforming, and processing image files with various filters and effects.
 
-Features include:
-- Transformation Options
-  - Red, Green and Blue Channels
-  - Grayscale 
-  - Negative
-  - Negative Grayscale
-  - Black and White Thresholding
-  - Gamma
+## Features
 
-- Spatial Filtering Options
-  - Lowpass Filters (Weighted Average, Median Square and Cross)
-  - Highpass Filters (Laplacian, Unsharp Masking, Highboost Filtering)
-  - Edge Detection (Sobel-Gradient)
+- Open and view image files (PCX, JPEG, PNG, GIF)
+- RGB channel separation
+- Grayscale conversion
+- Negative transformation
+- Black & White transformation
+- Gamma correction
+- Spatial filtering effects
+- Watermarking through bit-plane slicing
+- Image compression (RLE)
 
-- Noise Options
-  - Salt and Pepper Noise
-  - Salt Noise
-  - Pepper Noise
+## Project Structure
 
-- Image Restoration Options
-  - Contraharmonic Mean Filter (Q=-1.5)
-  - Contraharmonic Mean Filter (Q=1.5)
-  - Min Filter
-  - Max Filter
+```
+Image-Viewer/
+├── assets/              # UI assets and icons
+├── Images for Testing/  # Sample images for testing
+├── src/
+│   ├── core/           # Core functionality
+│   │   ├── color_palette.py
+│   │   ├── image_loader.py
+│   │   ├── image_processor.py
+│   │   └── utils.py
+│   └── features/       # Feature-specific modules
+│       ├── spatial_filtering.py
+│       └── watermarking.py
+├── tests/              # Test files
+├── ui/                 # UI-related modules
+│   ├── config.py
+│   ├── controls.py
+│   ├── image_display.py
+│   └── layout.py
+├── main.py            # Main application entry point
+└── requirements.txt   # Project dependencies
+```
 
-- Image Compression Options
-  -  RLE for Grayscale
-  -  RLE for RGB
+## Setup
 
-- Least Significant Bit (LSB) Watermarking
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/Image-Viewer.git
+cd Image-Viewer
+```
+
+2. Create and activate a virtual environment (optional but recommended):
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Run the application:
+```bash
+python main.py
+```
+
+## Requirements
+
+- Python 3.8+
+- numpy>=1.24.0
+- opencv-python>=4.8.0
+- PySimpleGUI>=4.60.0
+- Pillow>=10.0.0
+- matplotlib>=3.7.0
+
+## Author
+
+John Cedric R. Warain

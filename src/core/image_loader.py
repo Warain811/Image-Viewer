@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import PySimpleGUI as sg
 from PIL import Image
-from color_palette import create_color_palette, sort_color_palette
+from .color_palette import create_color_palette, sort_color_palette
 
 def image_open(file, window):
     """Open and process an image file, with special handling for PCX format.

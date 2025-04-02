@@ -4,6 +4,10 @@ import PySimpleGUI as sg
 from PIL import Image
 from os.path import exists
 
+# Local imports
+from .image_loader import image_open
+from .color_palette import clear_color_palette
+
 # Add to top of file if not already present
 TEMP_PNG = "tmp.png"
 

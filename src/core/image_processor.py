@@ -1,3 +1,6 @@
+"""
+Module for functions that process and transform images.
+"""
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
