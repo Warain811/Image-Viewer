@@ -2,6 +2,8 @@
 
 A desktop application for viewing, transforming, and processing image files with various filters and effects.
 
+You can view and copy the resulting image files directly from the main root folder. Additionally, the "Images for Testing" directory provides sample images to explore and test the application's features.
+
 ## Features
 
 - Open and view image files (PCX, JPEG, PNG, GIF)
@@ -12,7 +14,7 @@ A desktop application for viewing, transforming, and processing image files with
 - Gamma correction
 - Spatial filtering effects
 - Watermarking through bit-plane slicing
-- Image compression (RLE)
+- Image compression using RLE
 
 ## Project Structure
 
